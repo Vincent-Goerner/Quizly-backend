@@ -1,0 +1,46 @@
+# Virtuelle Umgebung ignorieren
+env/
+venv/
+
+# Bytecode-Dateien ignorieren
+__pycache__/
+*.pyc
+*.pyo
+
+# Datenbanken und Logs ignorieren
+db.sqlite3
+*.db
+*.sqlite3
+*.log
+
+# __pycache__
+core/__pycache__/
+auth_app/__pycache__/
+auth_app/api/__pycache__/
+auth_app/migrations/
+quiz_app/__pycache__/
+quiz_app/api/__pycache__/
+quiz_app/migrations/
+
+# pytest
+.pytest_cache/
+
+# VS Code und PyCharm Projektdateien ignorieren
+.vscode/
+.idea/
+
+# Cache- und temporäre Dateien ignorieren
+*.swp
+*.swo
+*.bak
+*.tmp
+
+# Medien- und Statische Dateien ignorieren
+media/
+staticfiles/
+
+# coverage
+.coverage
+
+# .env-Datei ignorieren
+.env
