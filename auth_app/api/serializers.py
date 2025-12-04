@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 
 class RegistrationSerializer(serializers.ModelSerializer):
+    
     repeated_password = serializers.CharField(write_only=True)
 
     class Meta:
@@ -35,3 +36,25 @@ class RegistrationSerializer(serializers.ModelSerializer):
         account.set_password(pw)
         account.save()
         return account
+
+
+class LoginTokenObtainPairSerializer(serializers.Serializer):
+
+    username = serializers.CharField()
+    password = serializers.CharField()
+
+    def validate(self, payload):
+        payload_username = payload.get('username')
+        payload_password = payload.get('password')
+
+        try:
+            user = User.objects.get(username=payload_username)
+        except User.DoesNotExist:
+            raise serializers.ValidationError("Username or password is not correct")
+
+        user = authenticate(username=payload_username, password=payload_password)
+        if not user:
+            raise serializers.ValidationError("Username or password is not correct")
+
+        payload['user'] = user
+        return payload
