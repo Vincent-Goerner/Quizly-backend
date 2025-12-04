@@ -4,7 +4,10 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
+
 from .serializers import RegistrationSerializer, LoginTokenObtainPairSerializer
+from .permissions import IsOwner
+
 
 class RegistrationView(APIView):
     permission_classes = [AllowAny]
@@ -114,7 +117,7 @@ class CookieTokenRefreshView(TokenRefreshView):
 
 class LogoutView(APIView):
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsOwner]
 
     def post(self, request):
         try:

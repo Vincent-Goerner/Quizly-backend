@@ -8,15 +8,14 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from quiz_managment_app.models import Quiz
-from auth_app.api.permissions import JWTCookieAuthentication
 from .serializers import YTURLSerializer, QuizSerializer, QuizPatchSerializer
 from .utils import MediaQuizProcessor
+from auth_app.api.permissions import CookieJWTAuthentication, IsOwner
 
 
 
 class QuizCreateView(APIView):
 
-    authentication_classes = [JWTCookieAuthentication]
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -60,8 +59,8 @@ class QuizCreateView(APIView):
 
 class QuizListView(generics.ListAPIView):
 
-    authentication_classes = [JWTCookieAuthentication]
     permission_classes = [IsAuthenticated]
+    authentication_classes = [CookieJWTAuthentication]
 
     def get(self, request, *args, **kwargs):
         try:
@@ -83,8 +82,7 @@ class QuizListView(generics.ListAPIView):
 
 class QuizDetailView(APIView):
 
-    authentication_classes = [JWTCookieAuthentication]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsOwner]
 
     def get_object(self, pk):
         quiz = get_object_or_404(Quiz, id=pk)
