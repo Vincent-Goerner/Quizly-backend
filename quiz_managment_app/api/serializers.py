@@ -67,6 +67,14 @@ class YTURLSerializer(serializers.Serializer):
             ("https", "www.youtube.com", "/watch", "", query, "")
         )
 
+    def create(self, validated_data):
+        user = self.context["request"].user 
+        return Quiz.objects.create(
+            title="Generated Quiz",
+            owner=user,
+            source_url=validated_data["url"]
+        )
+
     
 class QuestionSerializer(serializers.ModelSerializer):
 

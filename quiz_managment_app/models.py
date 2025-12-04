@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 
 class Quiz(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="quiz")
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="quiz")
     title = models.CharField(max_length=255)
     description = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)

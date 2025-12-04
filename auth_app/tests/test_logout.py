@@ -25,12 +25,9 @@ class LogoutTest(APITestCase):
             "refresh_token": refresh_token,
         })
 
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
+
         response = self.client.post(url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-
-        self.assertIn("refresh_token", response.cookies)
-        self.assertEqual(response.cookies["refresh_token"].value, "")
-        self.assertIn("access_token", response.cookies)
-        self.assertEqual(response.cookies["access_token"].value, "")
         

@@ -19,18 +19,18 @@ class QuizCreateView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        serializer = YTURLSerializer(data=request.data)
+        serializer = YTURLSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
 
         url = serializer.validated_data["url"]
         generator = MediaQuizProcessor()
 
         steps = [
-            ("Audio download failed", lambda: generator.download_audio(url)),
-            ("Whisper transcription failed", generator.transcribe_whisper),
-            ("Generating questions with Gemini failed", generator.generate_questions_gemini),
-            ("Cleaning text ending failed", generator.edge_cleaner_text),
-            ("Deleting transcribed text failed", generator.delete_transcribed_text),
+            ("Audio download failed", lambda: generator.fetch_audio_from_url(url)),
+            ("Whisper transcription failed", generator.transcribe_with_whisper),
+            ("Generating questions with Gemini failed", generator.generate_quiz_with_gemini),
+            ("Cleaning text ending failed", generator.clean_output_text),
+            ("Deleting transcribed text failed", generator.remove_markdown_fencing),
         ]
 
         for error_message, func in steps:
@@ -39,13 +39,13 @@ class QuizCreateView(APIView):
                 return response
 
         try:
-            quiz = serializer.create()
+            quiz = serializer.save()
             return Response(
                 QuizSerializer(quiz).data,
                 status=status.HTTP_201_CREATED
             )
         finally:
-            generator.delete_generated_text()
+            generator.delete_generated_quiz()
 
     def run_step(self, func, error_message):
         try:
