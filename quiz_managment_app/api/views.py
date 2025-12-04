@@ -10,7 +10,7 @@ from rest_framework.views import APIView
 from quiz_managment_app.models import Quiz
 from auth_app.api.permissions import JWTCookieAuthentication
 from .serializers import YTURLSerializer, QuizSerializer, QuizPatchSerializer
-from .utils import AudioQuizGenerator
+from .utils import MediaQuizProcessor
 
 
 
@@ -24,7 +24,7 @@ class QuizCreateView(APIView):
         serializer.is_valid(raise_exception=True)
 
         url = serializer.validated_data["url"]
-        generator = AudioQuizGenerator()
+        generator = MediaQuizProcessor()
 
         steps = [
             ("Audio download failed", lambda: generator.download_audio(url)),

@@ -5,7 +5,6 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
 from .serializers import RegistrationSerializer, LoginTokenObtainPairSerializer
-from .permissions import JWTCookieAuthentication
 
 class RegistrationView(APIView):
     permission_classes = [AllowAny]
@@ -27,7 +26,6 @@ class RegistrationView(APIView):
 
 
 class CookieTokenObtainPairView(TokenObtainPairView): 
-    authentication_classes = [JWTCookieAuthentication]
     permission_classes = [AllowAny]
 
     def post(self, request, *args, **kwargs):
@@ -116,7 +114,6 @@ class CookieTokenRefreshView(TokenRefreshView):
 
 class LogoutView(APIView):
 
-    authentication_classes = [JWTCookieAuthentication]
     permission_classes = [IsAuthenticated]
 
     def post(self, request):

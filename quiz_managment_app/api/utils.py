@@ -12,16 +12,16 @@ def get_client():
     return genai.Client(api_key=api_key)
 
 
-class AudioQuizGenerator:
+class MediaQuizProcessor:
     def __init__(self):
-        self.media_dir = "media"
-        self.audio_name = "audio_track"
-        self.transcript_name = "transcribed_text"
-        self.output_name = "generated_text"
-        os.makedirs(self.media_dir, exist_ok=True)
+        self.media_directory = "media"
+        self.audio_filename = "audio_track"
+        self.transcript_filename = "transcribed_text"
+        self.output_filename = "generated_text"
+        os.makedirs(self.media_directory, exist_ok=True)
 
-    def download_audio(self, url):
-        output_path = os.path.join(self.media_dir, self.audio_name)
+    def fetch_audio_from_url(self, url):
+        output_path = os.path.join(self.media_directory, self.audio_filename)
 
         ydl_opts = {
             "format": "bestaudio/best",
@@ -38,20 +38,20 @@ class AudioQuizGenerator:
         with yt_dlp.YoutubeDL(ydl_opts) as audio:
             audio.extract_info(url, download=True)
 
-    def transcribe_whisper(self):
+    def transcribe_with_whisper(self):
         import whisper
         model = whisper.load_model("small", device="cpu")
 
-        audio_file = self._path(self.audio_name + ".wav")
+        audio_file = self._build_path(self.audio_filename + ".wav")
         result = model.transcribe(audio_file)
 
-        self._delete_file(audio_file)
+        self._remove_file(audio_file)
 
-        self._write(self.transcript_name + ".txt", result["text"])
+        self._write_file(self.transcript_filename + ".txt", result["text"])
 
-    def generate_questions_gemini(self):
+    def generate_quiz_with_gemini(self):
         client = get_client()
-        transcript = self._read(self.transcript_name + ".txt")
+        transcript = self._read_file(self.transcript_filename + ".txt")
 
         prompt = f"""
             Create a quiz based on the following transcript.
@@ -65,41 +65,41 @@ class AudioQuizGenerator:
             contents=prompt,
         )
 
-        self._write(self.output_name + ".txt", response.text)
+        self._write_file(self.output_filename + ".txt", response.text)
 
-    def edge_cleaner_text(self):
-        filename = self.output_name + ".txt"
-        content = self._read(filename)
+    def clean_output_text(self):
+        filename = self.output_filename + ".txt"
+        content = self._read_file(filename)
 
-        content = self._clean_markdown(content.strip())
-        self._write(filename, content)
+        content = self._remove_markdown_fencing(content.strip())
+        self._write_file(filename, content)
 
         return content
 
-    def _clean_markdown(self, text):
+    def _remove_markdown_fencing(self, text):
         if text.startswith("```json"):
             text = text[len("```json"):]
         if text.endswith("```"):
             text = text[:-3]
         return text
 
-    def _path(self, name):
-        return os.path.join(self.media_dir, name)
+    def _build_path(self, name):
+        return os.path.join(self.media_directory, name)
 
-    def _read(self, filename):
-        with open(self._path(filename), "r", encoding="utf-8") as f:
+    def _read_file(self, filename):
+        with open(self._build_path(filename), "r", encoding="utf-8") as f:
             return f.read()
 
-    def _write(self, filename, content):
-        with open(self._path(filename), "w", encoding="utf-8") as f:
+    def _write_file(self, filename, content):
+        with open(self._build_path(filename), "w", encoding="utf-8") as f:
             f.write(content)
 
-    def _delete_file(self, filename):
+    def _remove_file(self, filename):
         if os.path.exists(filename):
             os.remove(filename)
 
-    def delete_transcribed_text(self):
-        self._delete_file(self._path(self.transcript_name + ".txt"))
+    def delete_transcript(self):
+        self._remove_file(self._build_path(self.transcript_filename + ".txt"))
 
-    def delete_generated_text(self):
-        self._delete_file(self._path(self.output_name + ".txt"))
+    def delete_generated_quiz(self):
+        self._remove_file(self._build_path(self.output_filename + ".txt"))
