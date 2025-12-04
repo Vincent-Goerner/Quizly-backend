@@ -1,5 +1,7 @@
 from rest_framework import serializers
+from django.contrib.auth.models import User
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
+from quiz_managment_app.models import Question, Quiz
 import yt_dlp
 
 
@@ -19,15 +21,15 @@ class YTURLSerializer(serializers.Serializer):
         if parsed.netloc not in self.VALID_DOMAINS:
             raise serializers.ValidationError("Invalid YouTube URL domain.")
 
-        video_id = self._extract_video_id(parsed)
+        video_id = self.extract_video_id(parsed)
         if not video_id:
             raise serializers.ValidationError("No video ID found in URL.")
 
-        self._validate_video_duration(video_id)
+        self.validate_video_duration(video_id)
 
-        return self._build_clean_url(video_id)
+        return self.build_clean_url(video_id)
 
-    def _extract_video_id(self, parsed):
+    def extract_video_id(self, parsed):
         if parsed.netloc == "youtu.be":
             return parsed.path.lstrip("/")
 
@@ -35,7 +37,7 @@ class YTURLSerializer(serializers.Serializer):
         video_id_list = query_params.get("v")
         return video_id_list[0] if video_id_list else None
 
-    def _validate_video_duration(self, video_id):
+    def validate_video_duration(self, video_id):
         video_url = f"https://www.youtube.com/watch?v={video_id}"
 
         opts = {
@@ -59,8 +61,75 @@ class YTURLSerializer(serializers.Serializer):
                 "Video is longer than 15 minutes."
             )
 
-    def _build_clean_url(self, video_id):
+    def build_clean_url(self, video_id):
         query = urlencode({"v": video_id})
         return urlunparse(
             ("https", "www.youtube.com", "/watch", "", query, "")
         )
+
+    
+class QuestionSerializer(serializers.ModelSerializer):
+
+    question_options = serializers.ListField(
+        child=serializers.CharField(max_length=255),
+        allow_empty=False
+    )
+
+    class Meta:
+        model = Question
+        fields = [
+            "id",
+            "question_title",
+            "question_options",
+            "answer",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "created_at",
+            "updated_at",
+        ]
+
+    def validate_question_options(self, value):
+        if len(value) != 4:
+            raise serializers.ValidationError(
+                "Each question must have exactly 4 answer options."
+            )
+        return value
+    
+
+class QuizSerializer(serializers.ModelSerializer):
+
+    questions = QuestionSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Quiz
+        fields = [
+            "id",
+            "title",
+            "description",
+            "created_at",
+            "updated_at",
+            "video_url",
+            "questions",
+        ]
+        read_only_fields = fields
+
+
+class QuizPatchSerializer(serializers.ModelSerializer):
+
+    title = serializers.CharField(required=False, max_length=255)
+    description = serializers.CharField(required=False, max_length=255)
+
+    class Meta:
+        model = Quiz
+        fields = [
+            "title",
+            "description",
+            "created_at",
+            "updated_at",
+            "video_url",
+            "questions",
+        ]
+        read_only_fields = ["id", "created_at", "updated_at", "video_url", "questions"]

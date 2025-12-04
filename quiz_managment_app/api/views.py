@@ -1,0 +1,126 @@
+from django.db import DatabaseError
+from django.shortcuts import get_object_or_404
+
+from rest_framework import generics, status
+from rest_framework.exceptions import PermissionDenied
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from quiz_managment_app.models import Quiz
+from auth_app.api.permissions import JWTCookieAuthentication
+from .serializers import YTURLSerializer, QuizSerializer, QuizPatchSerializer
+from .utils import AudioQuizGenerator
+
+
+
+class QuizCreateView(APIView):
+
+    authentication_classes = [JWTCookieAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = YTURLSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        url = serializer.validated_data["url"]
+        generator = AudioQuizGenerator()
+
+        steps = [
+            ("Audio download failed", lambda: generator.download_audio(url)),
+            ("Whisper transcription failed", generator.transcribe_whisper),
+            ("Generating questions with Gemini failed", generator.generate_questions_gemini),
+            ("Cleaning text ending failed", generator.edge_cleaner_text),
+            ("Deleting transcribed text failed", generator.delete_transcribed_text),
+        ]
+
+        for error_message, func in steps:
+            response = self.run_step(func, error_message)
+            if response:
+                return response
+
+        try:
+            quiz = serializer.create()
+            return Response(
+                QuizSerializer(quiz).data,
+                status=status.HTTP_201_CREATED
+            )
+        finally:
+            generator.delete_generated_text()
+
+    def run_step(self, func, error_message):
+        try:
+            func()
+        except Exception as e:
+            return Response(
+                {"detail": f"{error_message}: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
+class QuizListView(generics.ListAPIView):
+
+    authentication_classes = [JWTCookieAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        try:
+            quiz = Quiz.objects.filter(owner=self.request.user)
+            serializer = QuizSerializer(
+                quiz, many=True, context={"request": request}
+            )
+            return Response(
+                serializer.data,
+                status=status.HTTP_200_OK
+                )
+
+        except Exception as e:
+            return Response(
+                {"detail": {str(e)}},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class QuizDetailView(APIView):
+
+    authentication_classes = [JWTCookieAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self, pk):
+        quiz = get_object_or_404(Quiz, id=pk)
+        if not self.request.user.has_object_permission(self.request, self, quiz):
+            raise PermissionDenied(
+                "You do not have permission to access this quiz."
+                )
+        return quiz
+
+    def get(self, request, pk):
+        quiz = self.get_object(pk)
+        serializer = QuizSerializer(quiz, context={"request": request})
+        return Response(serializer.data)
+
+    def patch(self, request, pk):
+        quiz = self.get_object(pk)
+        serializer = QuizPatchSerializer(
+            quiz, data=request.data, partial=True, context={"request": request}
+        )
+        if serializer.is_valid():
+            quiz = serializer.save()
+            return Response(
+                QuizSerializer(quiz, context={"request": request}).data
+                )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk):
+        quiz = self.get_object(pk)
+
+        quiz.questions.all().delete()
+        
+        try:
+            quiz.delete()
+        except DatabaseError as e:
+            return Response(
+                {"error": f"An unexpected error occurred.: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+        return Response(status=status.HTTP_204_NO_CONTENT)

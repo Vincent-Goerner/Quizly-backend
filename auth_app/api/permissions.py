@@ -20,8 +20,6 @@ class JWTCookieAuthentication(authentication.BaseAuthentication):
             validated_token = jwt_auth.get_validated_token(token)
             user = jwt_auth.get_user(validated_token)
         except (InvalidToken, TokenError):
-            raise exceptions.AuthenticationFailed(
-                "Invalid or expired token"
-                )
+            raise exceptions.AuthenticationFailed("Invalid or expired token")
 
         return (user, validated_token)
