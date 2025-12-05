@@ -2,26 +2,26 @@ import os
 import yt_dlp
 
 from dotenv import load_dotenv
-from google import genai
 
 
 load_dotenv()
 
 def get_client():
+    from google import genai
     api_key = os.getenv("GEMINI_API_KEY")
     return genai.Client(api_key=api_key)
 
 
-class MediaQuizProcessor:
+class QuizGenerator:
     def __init__(self):
-        self.media_directory = "media"
-        self.audio_filename = "audio_track"
-        self.transcript_filename = "transcribed_text"
-        self.output_filename = "generated_text"
-        os.makedirs(self.media_directory, exist_ok=True)
+        self.media_dir = "media"
+        self.audio_file = "audio_track.wav"
+        self.transcript_file = "transcript.txt"
+        self.output_file = "quiz_output.txt"
+        os.makedirs(self.media_dir, exist_ok=True)
 
     def fetch_audio_from_url(self, url):
-        output_path = os.path.join(self.media_directory, self.audio_filename)
+        output_path = os.path.join(self.media_dir, "audio_track")
 
         ydl_opts = {
             "format": "bestaudio/best",
@@ -35,29 +35,29 @@ class MediaQuizProcessor:
             ],
         }
 
-        with yt_dlp.YoutubeDL(ydl_opts) as audio:
-            audio.extract_info(url, download=True)
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.extract_info(url, download=True)
 
-    def transcribe_with_whisper(self):
+        return self.build_path(self.audio_file)
+
+    def transcribe_audio(self):
         import whisper
         model = whisper.load_model("small", device="cpu")
+        audio_path = self.build_path(self.audio_file)
+        result = model.transcribe(audio_path)
+        self.remove_file(audio_path)
 
-        audio_file = self.build_path(self.audio_filename + ".wav")
-        result = model.transcribe(audio_file)
+        text = result["text"]
+        self.write_file(self.transcript_file, text)
+        return text
 
-        self.remove_file(audio_file)
-
-        self.write_file(self.transcript_filename + ".txt", result["text"])
-
-    def generate_quiz_with_gemini(self):
+    def generate_quiz(self):
         client = get_client()
-        transcript = self.read_file(self.transcript_filename + ".txt")
+        transcript = self.read_file(self.transcript_file)
 
         prompt = f"""
-            Create a quiz based on the following transcript.
-            ...
-            transcript:
-            {transcript[:10000]}
+        Create a quiz based on the following transcript:
+        {transcript[:10000]}
         """
 
         response = client.models.generate_content(
@@ -65,26 +65,21 @@ class MediaQuizProcessor:
             contents=prompt,
         )
 
-        self.write_file(self.output_filename + ".txt", response.text)
-
-    def clean_output_text(self):
-        filename = self.output_filename + ".txt"
-        content = self.read_file(filename)
-
-        content = self.remove_markdown_fencing(content.strip())
-        self.write_file(filename, content)
-
-        return content
-
-    def remove_markdown_fencing(self, text):
-        if text.startswith("```json"):
-            text = text[len("```json"):]
-        if text.endswith("```"):
-            text = text[:-3]
+        text = response.text
+        self.write_file(self.output_file, text)
         return text
 
-    def build_path(self, name):
-        return os.path.join(self.media_directory, name)
+    def clean_quiz_text(self):
+        content = self.read_file(self.output_file)
+        if content.startswith("```json"):
+            content = content[len("```json"):]
+        if content.endswith("```"):
+            content = content[:-3]
+        self.write_file(self.output_file, content)
+        return content
+
+    def build_path(self, filename):
+        return os.path.join(self.media_dir, filename)
 
     def read_file(self, filename):
         with open(self.build_path(filename), "r", encoding="utf-8") as f:
@@ -94,12 +89,10 @@ class MediaQuizProcessor:
         with open(self.build_path(filename), "w", encoding="utf-8") as f:
             f.write(content)
 
-    def remove_file(self, filename):
-        if os.path.exists(filename):
-            os.remove(filename)
+    def remove_file(self, filepath):
+        if os.path.exists(filepath):
+            os.remove(filepath)
 
-    def delete_transcript(self):
-        self.remove_file(self.build_path(self.transcript_filename + ".txt"))
-
-    def delete_generated_quiz(self):
-        self.remove_file(self.build_path(self.output_filename + ".txt"))
+    def cleanup(self):
+        for file in [self.audio_file, self.transcript_file, self.output_file]:
+            self.remove_file(self.build_path(file))

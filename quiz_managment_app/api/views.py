@@ -11,70 +11,46 @@ from rest_framework.views import APIView
 
 from quiz_managment_app.models import Quiz
 from .serializers import YTURLSerializer, QuizSerializer, QuizPatchSerializer
-from .utils import MediaQuizProcessor
+from .utils import QuizGenerator
 from auth_app.api.permissions import CookieJWTAuthentication, IsOwner
 
 
 
 class QuizCreateView(APIView):
-
     permission_classes = [IsAuthenticated]
+    authentication_classes = [CookieJWTAuthentication]
 
     def post(self, request):
         serializer = YTURLSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
 
         url = serializer.validated_data["url"]
-        generator = MediaQuizProcessor()
+        processor = QuizGenerator()
 
-        steps = [
-            ("Audio download failed", lambda: generator.fetch_audio_from_url(url)),
-            ("Whisper transcription failed", generator.transcribe_with_whisper),
-            ("Generating questions with Gemini failed", generator.generate_quiz_with_gemini),
-            ("Cleaning text ending failed", generator.clean_output_text),
-            ("Deleting transcribed text failed", generator.remove_markdown_fencing),
-        ]
+        try:
+            processor.fetch_audio_from_url(url)
 
-        result = None
+            processor.transcribe_with_whisper()
 
-        for error_message, func in steps:
-            output = self.run_step(func, error_message)
+            processor.generate_quiz_with_gemini()
 
-            if isinstance(output, Response):
-                return output
+            final_text = processor.clean_output_text()
 
-            if output is not None:
-                result = output
-
-        import json
-
-        if not isinstance(result, dict):
+            import json
             try:
-                result = json.loads(result)
+                generated_quiz = json.loads(final_text)
             except Exception:
                 return Response(
                     {"detail": "Generated quiz is not valid JSON."},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
 
-        try:
-            # Übergib result an den Serializer
-            quiz = serializer.save(generated_quiz=result)
-            return Response(
-                QuizSerializer(quiz).data,
-                status=status.HTTP_201_CREATED
-            )
-        finally:
-            generator.delete_generated_quiz()
+            quiz = serializer.save(generated_quiz=generated_quiz)
+            return Response(QuizSerializer(quiz).data, status=status.HTTP_201_CREATED)
 
-    def run_step(self, func, error_message):
-        try:
-            return func()
-        except Exception as e:
-            return Response(
-                {"detail": f"{error_message}: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        finally:
+            processor.delete_transcript()
+            processor.delete_generated_quiz()
 
 
 class QuizListView(generics.ListAPIView):
@@ -129,7 +105,6 @@ class QuizDetailView(APIView):
 
     def delete(self, request, pk):
         quiz = self.get_object(pk)
-        # Alle Fragen löschen
         quiz.questions.all().delete()
         try:
             quiz.delete()
