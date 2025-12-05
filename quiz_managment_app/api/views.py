@@ -101,21 +101,18 @@ class QuizListView(generics.ListAPIView):
 
 
 class QuizDetailView(APIView):
-
     permission_classes = [IsAuthenticated, IsOwner]
 
     def get_object(self, pk):
         quiz = get_object_or_404(Quiz, id=pk)
-        if not self.request.user.has_object_permission(self.request, self, quiz):
-            raise PermissionDenied(
-                "You do not have permission to access this quiz."
-                )
+        if quiz.owner != self.request.user:
+            raise PermissionDenied("You do not have permission to access this quiz.")
         return quiz
 
     def get(self, request, pk):
         quiz = self.get_object(pk)
         serializer = QuizSerializer(quiz, context={"request": request})
-        return Response(serializer.data)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     def patch(self, request, pk):
         quiz = self.get_object(pk)
@@ -125,15 +122,15 @@ class QuizDetailView(APIView):
         if serializer.is_valid():
             quiz = serializer.save()
             return Response(
-                QuizSerializer(quiz, context={"request": request}).data
-                )
+                QuizSerializer(quiz, context={"request": request}).data,
+                status=status.HTTP_200_OK
+            )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, pk):
         quiz = self.get_object(pk)
-
+        # Alle Fragen löschen
         quiz.questions.all().delete()
-        
         try:
             quiz.delete()
         except DatabaseError as e:
