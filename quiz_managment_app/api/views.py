@@ -1,3 +1,5 @@
+import json
+
 from django.db import DatabaseError
 from django.shortcuts import get_object_or_404
 
@@ -33,13 +35,31 @@ class QuizCreateView(APIView):
             ("Deleting transcribed text failed", generator.remove_markdown_fencing),
         ]
 
+        result = None
+
         for error_message, func in steps:
-            response = self.run_step(func, error_message)
-            if response:
-                return response
+            output = self.run_step(func, error_message)
+
+            if isinstance(output, Response):
+                return output
+
+            if output is not None:
+                result = output
+
+        import json
+
+        if not isinstance(result, dict):
+            try:
+                result = json.loads(result)
+            except Exception:
+                return Response(
+                    {"detail": "Generated quiz is not valid JSON."},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
 
         try:
-            quiz = serializer.save()
+            # Übergib result an den Serializer
+            quiz = serializer.save(generated_quiz=result)
             return Response(
                 QuizSerializer(quiz).data,
                 status=status.HTTP_201_CREATED
@@ -49,11 +69,11 @@ class QuizCreateView(APIView):
 
     def run_step(self, func, error_message):
         try:
-            func()
+            return func()
         except Exception as e:
             return Response(
                 {"detail": f"{error_message}: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
 

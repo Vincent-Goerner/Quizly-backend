@@ -68,36 +68,38 @@ class YTURLSerializer(serializers.Serializer):
         )
 
     def create(self, validated_data):
-        user = self.context["request"].user 
-        return Quiz.objects.create(
-            title="Generated Quiz",
+
+        user = self.context["request"].user
+
+        generated_quiz = validated_data.pop("generated_quiz", None)
+
+        if generated_quiz is None:
+            raise ValueError(
+                "generated_quiz must be provided when calling serializer.save()."
+            )
+
+        quiz = Quiz.objects.create(
             owner=user,
-            source_url=validated_data["url"]
+            title=generated_quiz.get("title", "Untitled Quiz"),
+            description=generated_quiz.get("description", ""),
+            video_url=validated_data["url"]
         )
+
+        for q in generated_quiz.get("questions", []):
+            Question.objects.create(
+                quiz=quiz,
+                question_title=q.get("question_title", "Untitled Question"),
+                question_options=q.get("question_options", []),
+                answer=q.get("answer", "")
+            )
+
+        return quiz
 
     
 class QuestionSerializer(serializers.ModelSerializer):
-
-    question_options = serializers.ListField(
-        child=serializers.CharField(max_length=255),
-        allow_empty=False
-    )
-
     class Meta:
         model = Question
-        fields = [
-            "id",
-            "question_title",
-            "question_options",
-            "answer",
-            "created_at",
-            "updated_at",
-        ]
-        read_only_fields = [
-            "id",
-            "created_at",
-            "updated_at",
-        ]
+        fields = ["id", "question_title", "question_options", "answer"]
 
     def validate_question_options(self, value):
         if len(value) != 4:

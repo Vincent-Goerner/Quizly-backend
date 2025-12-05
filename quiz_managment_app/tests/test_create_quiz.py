@@ -28,7 +28,6 @@ class CreateQuizTest(APITestCase):
     @patch("quiz_managment_app.api.views.MediaQuizProcessor.generate_quiz_with_gemini")
     @patch("quiz_managment_app.api.views.MediaQuizProcessor.clean_output_text")
     @patch("quiz_managment_app.api.views.MediaQuizProcessor.remove_markdown_fencing")
-
     def test_create_quiz_success(
         self,
         mock_remove_md,
@@ -38,15 +37,28 @@ class CreateQuizTest(APITestCase):
         mock_fetch_audio,
     ):
         mock_remove_md.return_value = None
-        mock_clean_text.return_value = "mock quiz text"
-        mock_generate_gemini.return_value = None
+        mock_clean_text.return_value = None
         mock_transcribe.return_value = None
         mock_fetch_audio.return_value = None
-        
-        url = reverse("create-quiz")
 
+        mock_generate_gemini.return_value = {
+            "title": "Test Quiz",
+            "description": "Mock description",
+            "questions": [
+                {
+                    "question_title": "What is 2+2?",
+                    "question_options": ["1","2","3","4"],
+                    "answer": "4"
+                }
+            ]
+        }
+
+        url = reverse("create-quiz")
         response = self.client.post(url, self.valid_payload, format="json")
 
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data["title"], "Test Quiz")
         self.assertEqual(len(response.data["questions"]), 1)
+        self.assertEqual(response.data["questions"][0]["question_title"], "What is 2+2?")
+        self.assertEqual(response.data["questions"][0]["question_options"], ["1","2","3","4"])
+        self.assertEqual(response.data["questions"][0]["answer"], "4")
