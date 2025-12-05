@@ -1,7 +1,7 @@
 from django.contrib.auth.models import User
 from django.urls import reverse
 from rest_framework.test import APITestCase
-from unittest.mock import MagicMock, patch, mock_open
+from unittest.mock import patch
 
 import sys
 import os
@@ -23,35 +23,25 @@ class CreateQuizTest(APITestCase):
             "url": "https://www.invalid.com/watch?v=123"
         }
 
-    @patch("quiz_managment_app.api.views.MediaQuizProcessor.fetch_audio_from_url")
-    @patch("quiz_managment_app.api.views.MediaQuizProcessor.transcribe_with_whisper")
-    @patch("quiz_managment_app.api.views.MediaQuizProcessor.generate_quiz_with_gemini")
-    @patch("quiz_managment_app.api.views.MediaQuizProcessor.clean_output_text")
-    @patch("quiz_managment_app.api.views.MediaQuizProcessor.remove_markdown_fencing")
+    @patch("quiz_managment_app.api.views.QuizGenerator.fetch_audio_from_url")
+    @patch("quiz_managment_app.api.views.QuizGenerator.transcribe_audio")
+    @patch("quiz_managment_app.api.views.QuizGenerator.generate_quiz")
+    @patch("quiz_managment_app.api.views.QuizGenerator.clean_quiz_text")
     def test_create_quiz_success(
         self,
-        mock_remove_md,
         mock_clean_text,
-        mock_generate_gemini,
+        mock_generate_quiz,
         mock_transcribe,
         mock_fetch_audio,
     ):
-        mock_remove_md.return_value = None
-        mock_clean_text.return_value = None
-        mock_transcribe.return_value = None
         mock_fetch_audio.return_value = None
-
-        mock_generate_gemini.return_value = {
-            "title": "Test Quiz",
-            "description": "Mock description",
-            "questions": [
-                {
-                    "question_title": "What is 2+2?",
-                    "question_options": ["1","2","3","4"],
-                    "answer": "4"
-                }
-            ]
-        }
+        mock_transcribe.return_value = "Mock transcript"
+        mock_generate_quiz.return_value = "{" \
+            '"title": "Test Quiz",' \
+            '"description": "Mock description",' \
+            '"questions": [{"question_title": "What is 2+2?", "question_options": ["1","2","3","4"], "answer": "4"}]' \
+            "}"
+        mock_clean_text.return_value = mock_generate_quiz.return_value
 
         url = reverse("create-quiz")
         response = self.client.post(url, self.valid_payload, format="json")

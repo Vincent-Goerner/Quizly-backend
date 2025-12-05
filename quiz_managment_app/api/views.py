@@ -30,11 +30,11 @@ class QuizCreateView(APIView):
         try:
             processor.fetch_audio_from_url(url)
 
-            processor.transcribe_with_whisper()
+            processor.transcribe_audio()
 
-            processor.generate_quiz_with_gemini()
+            processor.generate_quiz()
 
-            final_text = processor.clean_output_text()
+            final_text = processor.clean_quiz_text()
 
             import json
             try:
@@ -49,8 +49,7 @@ class QuizCreateView(APIView):
             return Response(QuizSerializer(quiz).data, status=status.HTTP_201_CREATED)
 
         finally:
-            processor.delete_transcript()
-            processor.delete_generated_quiz()
+            processor.cleanup()
 
 
 class QuizListView(generics.ListAPIView):

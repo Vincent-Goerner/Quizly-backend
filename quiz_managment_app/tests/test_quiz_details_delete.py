@@ -2,7 +2,6 @@ from rest_framework.test import APITestCase
 from django.urls import reverse
 from django.contrib.auth.models import User
 from quiz_managment_app.models import Quiz, Question
-from django.db import DatabaseError
 
 class QuizDetailViewDeleteTest(APITestCase):
     def setUp(self):
