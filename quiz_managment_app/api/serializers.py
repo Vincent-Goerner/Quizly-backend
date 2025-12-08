@@ -142,3 +142,11 @@ class QuizPatchSerializer(serializers.ModelSerializer):
             "questions",
         ]
         read_only_fields = ["id", "description", "created_at", "updated_at", "video_url", "questions"]
+
+    def validate(self, attrs):
+        forbidden_fields = set(self.initial_data.keys()) - {"title"}
+        if forbidden_fields:
+            raise serializers.ValidationError(
+                {"details": "Only title is editable!"}
+            )
+        return attrs
