@@ -99,7 +99,7 @@ class YTURLSerializer(serializers.Serializer):
 class QuestionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Question
-        fields = ["id", "question_title", "question_options", "answer"]
+        fields = ["id", "question_title", "question_options", "answer", "created_at", "updated_at"]
 
     def validate_question_options(self, value):
         if len(value) != 4:
@@ -129,8 +129,7 @@ class QuizSerializer(serializers.ModelSerializer):
 
 class QuizPatchSerializer(serializers.ModelSerializer):
 
-    title = serializers.CharField(required=False, max_length=255)
-    description = serializers.CharField(required=False, max_length=255)
+    title = serializers.CharField(required=True, max_length=255)
 
     class Meta:
         model = Quiz
@@ -142,4 +141,4 @@ class QuizPatchSerializer(serializers.ModelSerializer):
             "video_url",
             "questions",
         ]
-        read_only_fields = ["id", "created_at", "updated_at", "video_url", "questions"]
+        read_only_fields = ["id", "description", "created_at", "updated_at", "video_url", "questions"]

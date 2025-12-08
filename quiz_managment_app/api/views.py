@@ -77,6 +77,7 @@ class QuizListView(generics.ListAPIView):
 
 class QuizDetailView(APIView):
     permission_classes = [IsAuthenticated, IsOwner]
+    authentication_classes = [CookieJWTAuthentication]
 
     def get_object(self, pk):
         quiz = get_object_or_404(Quiz, id=pk)
@@ -97,9 +98,7 @@ class QuizDetailView(APIView):
         if serializer.is_valid():
             quiz = serializer.save()
             return Response(
-                QuizSerializer(quiz, context={"request": request}).data,
-                status=status.HTTP_200_OK
-            )
+                QuizSerializer(quiz, context={"request": request}).data,status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, pk):

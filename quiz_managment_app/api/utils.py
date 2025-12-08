@@ -1,5 +1,6 @@
 import os
 import yt_dlp
+import re
 
 from dotenv import load_dotenv
 
@@ -56,7 +57,26 @@ class QuizGenerator:
         transcript = self.read_file(self.transcript_file)
 
         prompt = f"""
-        Create a quiz based on the following transcript:
+        Erstelle ein Quiz basierend auf folgendem Transkript.
+
+        Gib die Antwort **AUSSCHLIESSLICH** als gültiges JSON im folgenden Format zurück.
+        Keinen zusätzlichen Text, keine Erklärungen, keinen Markdown, keine ```-Codeblöcke.
+
+        Beispiel des genauen erwarteten JSON-Formats:
+
+        {{
+        "title": "string",
+        "description": "string",
+        "questions": [
+            {{
+            "question_title": "string",
+            "question_options": ["A", "B", "C", "D"],
+            "answer": "string"
+            }}
+        ]
+        }}
+
+        Hier ist das Transkript:
         {transcript[:10000]}
         """
 
@@ -65,16 +85,25 @@ class QuizGenerator:
             contents=prompt,
         )
 
-        text = response.text
+        text = response.text.strip()
+
+        match = re.search(r"\{.*\}", text, re.DOTALL)
+        if match:
+            text = match.group(0)
         self.write_file(self.output_file, text)
         return text
 
     def clean_quiz_text(self):
         content = self.read_file(self.output_file)
-        if content.startswith("```json"):
-            content = content[len("```json"):]
-        if content.endswith("```"):
-            content = content[:-3]
+
+        content = content.replace("```json", "")
+        content = content.replace("```", "")
+
+        match = re.search(r"\{.*\}", content, re.DOTALL)
+        if match:
+            content = match.group(0)
+
+        content = content.strip()
         self.write_file(self.output_file, content)
         return content
 
