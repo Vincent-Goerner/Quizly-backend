@@ -4,8 +4,14 @@ from rest_framework.test import APITestCase
 from rest_framework import status
 
 class RegistrationTest(APITestCase):
-
+    """
+    Test case for user registration endpoint, covering valid registration,
+    password mismatch, and attempts to register with existing username or email.
+    """
     def setUp(self):
+        """
+        Sets up test users and payloads for registration tests.
+        """
         self.valid_user = {
             'username': 'valid_user',
             'password': 'valid_password',
@@ -25,12 +31,20 @@ class RegistrationTest(APITestCase):
         )
 
     def test_post_valid_registration(self):
+        """
+        Ensures that a valid registration request returns HTTP 200 or 201
+        and successfully creates a new user.
+        """
         url = reverse('registration')
         response = self.client.post(url, self.valid_user, format="json")
 
         self.assertIn(response.status_code, [status.HTTP_200_OK, status.HTTP_201_CREATED])
 
     def test_post_inavlid_registration(self):
+        """
+        Ensures that registration with mismatched passwords returns
+        HTTP 400 with the appropriate error message.
+        """
         url = reverse('registration')
         response = self.client.post(url, self.invalid_user, format="json")
 
@@ -38,6 +52,10 @@ class RegistrationTest(APITestCase):
         self.assertIn("Passwords do not match", response.data["repeated_password"][0])
     
     def test_post_existing_user_registration(self):
+        """
+        Ensures that registration with an existing username returns
+        HTTP 400 with a relevant error message.
+        """
         url = reverse('registration')
         payload = {
             "username": "existing",
@@ -52,6 +70,10 @@ class RegistrationTest(APITestCase):
         self.assertIn("A user with that username already exists.", response.data["username"][0])
 
     def test_post_existing_email_registration(self):
+        """
+        Ensures that registration with an existing email returns
+        HTTP 400 with a relevant error message.
+        """
         url = reverse('registration')
         payload = {
             "username": "unique_user",

@@ -1,14 +1,20 @@
+import os
+from django.contrib.auth.models import User
 from django.contrib.auth.models import User
 from django.urls import reverse
 from rest_framework.test import APITestCase
 from unittest.mock import patch
 
-import sys
-import os
-
 
 class CreateQuizTest(APITestCase):
+    """
+    Test case for the QuizCreateView API, verifying quiz creation
+    from a YouTube URL.
+    """
     def setUp(self):
+        """
+        Sets up the test user, authentication, and example payloads.
+        """
         os.environ["GOOGLE_API_KEY"] = "dummy-test-key"
         self.user = User.objects.create_user(
             username="testuser",
@@ -27,6 +33,7 @@ class CreateQuizTest(APITestCase):
     @patch("quiz_managment_app.api.views.QuizGenerator.transcribe_audio")
     @patch("quiz_managment_app.api.views.QuizGenerator.generate_quiz")
     @patch("quiz_managment_app.api.views.QuizGenerator.clean_quiz_text")
+
     def test_create_quiz_success(
         self,
         mock_clean_text,
@@ -34,6 +41,10 @@ class CreateQuizTest(APITestCase):
         mock_transcribe,
         mock_fetch_audio,
     ):
+        """
+        Tests successful quiz creation by mocking audio processing,
+        transcription, and AI quiz generation.
+        """
         mock_fetch_audio.return_value = None
         mock_transcribe.return_value = "Mock transcript"
         mock_generate_quiz.return_value = "{" \

@@ -5,8 +5,14 @@ from rest_framework import status
 
 
 class CookieTokenTest(APITestCase):
-        
+    """
+    Test case for login and JWT cookie authentication, verifying successful
+    login, invalid credentials, and missing field scenarios.
+    """        
     def setUp(self):
+        """
+        Creates a test user for login tests.
+        """
         self.user = User.objects.create_user(
             username="testuser",
             email="test@example.com",
@@ -14,6 +20,10 @@ class CookieTokenTest(APITestCase):
         )
 
     def test_post_login_successful(self):
+        """
+        Ensures a valid login returns HTTP 200, includes user details in
+        response, and sets secure HTTP-only access and refresh cookies.
+        """
         url = reverse('login')
         data = {
             "username": "testuser", 
@@ -41,6 +51,10 @@ class CookieTokenTest(APITestCase):
         self.assertTrue(refresh_cookie["secure"])
     
     def test_post_login_invalid_credentials(self):
+        """
+        Ensures login with invalid credentials returns HTTP 401 and
+        does not set JWT cookies.
+        """
         url = reverse('login')
         data = {"username": "testuser", "password": "testpassword2"}
 
@@ -51,6 +65,11 @@ class CookieTokenTest(APITestCase):
         self.assertNotIn("refresh_token", response.cookies)
 
     def test_post_login_missing_fields(self):
+        """
+        Ensures login with missing fields (e.g., password) returns HTTP 401
+        with appropriate validation error messages.
+        """
+
         url = reverse('login')
         data = {"username": "testuser"}
 

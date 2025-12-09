@@ -10,9 +10,18 @@ from .permissions import IsOwner
 
 
 class RegistrationView(APIView):
+    """
+    API endpoint for creating new user accounts. Allows public access and
+    delegates validation and creation logic to the `RegistrationSerializer`.
+    """
     permission_classes = [AllowAny]
 
     def post(self, request):
+        """
+        Processes registration data, validates it using the serializer,
+        creates the user on success, and returns appropriate responses for
+        successful creation or validation errors.
+        """
         serializer = RegistrationSerializer(data=request.data)
 
         if serializer.is_valid():
@@ -24,9 +33,18 @@ class RegistrationView(APIView):
 
 
 class CookieTokenObtainPairView(TokenObtainPairView): 
+    """
+    View that authenticates a user via username and password and returns
+    JWT access and refresh tokens stored securely in HTTP-only cookies.
+    """
     permission_classes = [AllowAny]
 
     def post(self, request, *args, **kwargs):
+        """
+        Validates login credentials using `LoginTokenObtainPairSerializer`.
+        On success, generates JWT tokens, sets them as secure cookies, and
+        returns user information. Returns 401 on validation failure.
+        """
         serializer = LoginTokenObtainPairSerializer(data=request.data)
 
         if serializer.is_valid():
@@ -111,10 +129,18 @@ class CookieTokenRefreshView(TokenRefreshView):
     
 
 class LogoutView(APIView):
-
+    """
+    View that refreshes the JWT access token using the refresh token stored
+    in an HTTP-only cookie and returns a new access token.
+    """
     permission_classes = [IsAuthenticated, IsOwner]
 
     def post(self, request):
+        """
+        Retrieves the refresh token from cookies, validates it using the 
+        serializer, and issues a new access token. Returns appropriate 
+        error responses when the token is missing or invalid.
+        """
         try:
             refresh_token = request.COOKIES.get("refresh_token")
             if refresh_token:

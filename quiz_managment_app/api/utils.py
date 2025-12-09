@@ -8,13 +8,24 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def get_client():
+    """
+    Initializes and returns a Google Gemini API client using the
+    'GEMINI_API_KEY' from environment variables.
+    """
     from google import genai
     api_key = os.getenv("GEMINI_API_KEY")
     return genai.Client(api_key=api_key)
 
 
 class QuizGenerator:
+    """
+    Class to generate quizzes from YouTube video URLs by downloading
+    audio, transcribing it, and generating a quiz via an AI model.
+    """
     def __init__(self):
+        """
+        Initializes file paths and ensures the media directory exists.
+        """
         self.media_dir = "media"
         self.audio_file = "audio_track.wav"
         self.transcript_file = "transcript.txt"
@@ -22,6 +33,11 @@ class QuizGenerator:
         os.makedirs(self.media_dir, exist_ok=True)
 
     def fetch_audio_from_url(self, url):
+        """
+        Downloads audio from the provided YouTube URL as a WAV file
+        using yt_dlp and returns the full file path.
+        """
+
         output_path = os.path.join(self.media_dir, "audio_track")
 
         ydl_opts = {
@@ -42,6 +58,10 @@ class QuizGenerator:
         return self.build_path(self.audio_file)
 
     def transcribe_audio(self):
+        """
+        Uses the Whisper model to transcribe the audio file to text,
+        removes the audio file afterward, and saves the transcript to a file.
+        """
         import whisper
         model = whisper.load_model("small", device="cpu")
         audio_path = self.build_path(self.audio_file)
@@ -53,6 +73,10 @@ class QuizGenerator:
         return text
 
     def generate_quiz(self):
+        """
+        Generates a quiz JSON from the transcript using the Gemini AI model.
+        Saves the raw output to a file and returns it as a string.
+        """
         client = get_client()
         transcript = self.read_file(self.transcript_file)
 
@@ -94,6 +118,10 @@ class QuizGenerator:
         return text
 
     def clean_quiz_text(self):
+        """
+        Cleans the quiz output file by removing any Markdown code blocks
+        and extracting valid JSON, then saves the cleaned content.
+        """
         content = self.read_file(self.output_file)
 
         content = content.replace("```json", "")
@@ -108,20 +136,36 @@ class QuizGenerator:
         return content
 
     def build_path(self, filename):
+        """
+        Constructs the full file path for a file inside the media directory.
+        """
         return os.path.join(self.media_dir, filename)
 
     def read_file(self, filename):
+        """
+        Reads and returns the contents of a file inside the media directory.
+        """
         with open(self.build_path(filename), "r", encoding="utf-8") as f:
             return f.read()
 
     def write_file(self, filename, content):
+        """
+        Writes content to a file inside the media directory.
+        """
         with open(self.build_path(filename), "w", encoding="utf-8") as f:
             f.write(content)
 
     def remove_file(self, filepath):
+        """
+        Deletes a file if it exists.
+        """
         if os.path.exists(filepath):
             os.remove(filepath)
 
     def cleanup(self):
+        """
+        Removes all temporary files used during quiz generation
+        (audio, transcript, and output files).
+        """
         for file in [self.audio_file, self.transcript_file, self.output_file]:
             self.remove_file(self.build_path(file))

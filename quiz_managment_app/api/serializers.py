@@ -1,18 +1,26 @@
 from rest_framework import serializers
-from django.contrib.auth.models import User
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 from quiz_managment_app.models import Question, Quiz
 import yt_dlp
 
 
 class YTURLSerializer(serializers.Serializer):
-
+    """
+    Serializer for validating YouTube URLs, ensuring they belong to allowed
+    domains, extracting the video ID, checking video duration, and creating
+    a Quiz instance with the video URL and related questions.
+    """
     url = serializers.CharField(max_length=255)
 
     VALID_DOMAINS = {"www.youtube.com", "youtube.com", "m.youtube.com", "youtu.be"}
     MAX_DURATION = 15 * 60
 
     def validate_url(self, url):
+        """
+        Validates that the URL is non-empty, belongs to a valid YouTube domain,
+        contains a video ID, and the video duration does not exceed 15 minutes.
+        Returns a clean, canonical YouTube URL.
+        """
         if not url:
             raise serializers.ValidationError("URL cannot be empty.")
 
@@ -30,6 +38,10 @@ class YTURLSerializer(serializers.Serializer):
         return self.build_clean_url(video_id)
 
     def extract_video_id(self, parsed):
+        """
+        Extracts the YouTube video ID from the parsed URL. Supports both
+        standard YouTube URLs and shortened youtu.be links.
+        """
         if parsed.netloc == "youtu.be":
             return parsed.path.lstrip("/")
 
@@ -38,6 +50,10 @@ class YTURLSerializer(serializers.Serializer):
         return video_id_list[0] if video_id_list else None
 
     def validate_video_duration(self, video_id):
+        """
+        Checks the duration of the YouTube video. Raises a validation error
+        if the duration cannot be read or exceeds 15 minutes.
+        """
         video_url = f"https://www.youtube.com/watch?v={video_id}"
 
         opts = {
@@ -62,13 +78,20 @@ class YTURLSerializer(serializers.Serializer):
             )
 
     def build_clean_url(self, video_id):
+        """
+        Constructs a canonical YouTube URL in the form:
+        https://www.youtube.com/watch?v=<video_id>
+        """
         query = urlencode({"v": video_id})
         return urlunparse(
             ("https", "www.youtube.com", "/watch", "", query, "")
         )
 
     def create(self, validated_data):
-
+        """
+        Creates a Quiz instance with the validated YouTube URL and associates
+        provided questions. Requires 'generated_quiz' in serializer context.
+        """
         user = self.context["request"].user
 
         generated_quiz = validated_data.pop("generated_quiz", None)
@@ -97,11 +120,19 @@ class YTURLSerializer(serializers.Serializer):
 
     
 class QuestionSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the Question model, validating that each question has
+    exactly 4 answer options and exposing standard fields.
+    """
     class Meta:
         model = Question
         fields = ["id", "question_title", "question_options", "answer", "created_at", "updated_at"]
 
     def validate_question_options(self, value):
+        """
+        Ensures that each question has exactly 4 answer options; raises a
+        validation error otherwise.
+        """
         if len(value) != 4:
             raise serializers.ValidationError(
                 "Each question must have exactly 4 answer options."
@@ -110,7 +141,10 @@ class QuestionSerializer(serializers.ModelSerializer):
     
 
 class QuizSerializer(serializers.ModelSerializer):
-
+    """
+    Serializer for the Quiz model, including its related questions
+    using `QuestionSerializer`. All fields are read-only.
+    """
     questions = QuestionSerializer(many=True, read_only=True)
 
     class Meta:
@@ -128,8 +162,12 @@ class QuizSerializer(serializers.ModelSerializer):
 
 
 class QuizPatchSerializer(serializers.ModelSerializer):
-
-    title = serializers.CharField(required=True, max_length=255)
+    """
+    Serializer for partially updating a Quiz instance, allowing only
+    'title' and 'description' to be modified. All other fields are read-only.
+    """
+    title = serializers.CharField(required=False, max_length=255)
+    description = serializers.CharField(required=False, max_length=255)
 
     class Meta:
         model = Quiz
@@ -141,12 +179,16 @@ class QuizPatchSerializer(serializers.ModelSerializer):
             "video_url",
             "questions",
         ]
-        read_only_fields = ["id", "description", "created_at", "updated_at", "video_url", "questions"]
+        read_only_fields = ["id" "created_at", "updated_at", "video_url", "questions"]
 
     def validate(self, attrs):
-        forbidden_fields = set(self.initial_data.keys()) - {"title"}
+        """
+        Ensures that only 'title' and 'description' are being updated.
+        Raises a validation error if any other fields are present.
+        """
+        forbidden_fields = set(self.initial_data.keys()) - {"title", "description"}
         if forbidden_fields:
             raise serializers.ValidationError(
-                {"details": "Only title is editable!"}
+                {"details": "Only title and description is editable!"}
             )
         return attrs

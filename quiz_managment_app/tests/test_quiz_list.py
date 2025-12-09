@@ -4,7 +4,16 @@ from django.contrib.auth.models import User
 from quiz_managment_app.models import Quiz, Question
 
 class QuizListViewTest(APITestCase):
+    """
+    Test case for the QuizListView.
+    Ensures that users can retrieve only their own quizzes and
+    that unauthenticated users cannot access the list.
+    """
     def setUp(self):
+        """
+        Sets up two users, three quizzes (two for user1, one for user2),
+        and one question for quiz1. Authenticates as user1.
+        """
         self.user1 = User.objects.create_user(username="testuser1", password="testpassword1")
         self.user2 = User.objects.create_user(username="testuser2", password="testpassword2")
 
@@ -38,6 +47,10 @@ class QuizListViewTest(APITestCase):
         )
 
     def test_get_quiz_list_returns_only_user_quizzes(self):
+        """
+        Ensures that only quizzes owned by the authenticated user are returned,
+        including nested questions.
+        """
         url = reverse("quiz-list")
 
         response = self.client.get(url, format="json")
@@ -57,6 +70,9 @@ class QuizListViewTest(APITestCase):
         self.assertEqual(quiz1_data["questions"][0]["answer"], "A")
         
     def test_quiz_list_unauthenticated(self):
+        """
+        Ensures that unauthenticated users receive a 401 response.
+        """
         self.client.force_authenticate(user=None)
 
         url = reverse("quiz-list")
