@@ -49,6 +49,7 @@ cd quizly-backend
 
 # 2. Create .env using the 'git bash' console
 
+cd Quizly-backend
 cp .env.template .env
 
 # 3. Create and enter virtual environment
