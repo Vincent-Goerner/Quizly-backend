@@ -9,7 +9,7 @@ Quizly is a Django-based, AI-Quiz Generator developed as part of the Developer A
 - Register, login, logout functionality
 
 ### Quiz Generation
-- Create a ai quiz with only a Youtube-URL
+- Create ai generated quiz with Youtube-URL
 
 ### Quiz Interaction
 - Anwser the questions with multiple choice option
@@ -105,9 +105,7 @@ python manage.py runserver
 
 This project uses a .env file to manage environment-specific and sensitive settings such as:
 
-SECRET_KEY
-
-DEBUG
+GEMINI API KEY
 
 The .env file is excluded from version control (.gitignore), but a .env.template is provided as a template.
 Please copy .env.template to .env and fill in your own values before running the project.
