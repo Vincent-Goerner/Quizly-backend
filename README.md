@@ -19,6 +19,9 @@ Quizly is a Django-based, AI-Quiz Generator developed as part of the Developer A
 
 ### Quiz Managment
 - View, edit and delete quizzes
+  
+### Legal Pages
+- Privacy Policy & Imprint pages
 
 ## ⚙️ Installation
 
