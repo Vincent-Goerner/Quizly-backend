@@ -47,7 +47,11 @@ Full list: requirements.txt (Installation guide see below)
 git clone https://github.com/Vincent-Goerner/Quizly-backend.git
 cd quizly-backend
 
-# 2. Create and enter virtual environment
+# 2. Create .env using the 'git bash' console
+
+cp .env.template .env
+
+# 3. Create and enter virtual environment
 
 python -m venv env
 
@@ -57,20 +61,20 @@ python -m venv env
   # On Windows:
     env\Scripts\activate
 
-# 3. Install dependencies
+# 4. Install dependencies
 
 pip install -r requirements.txt
 
-# 4. Run migrations
+# 5. Run migrations
 
 python manage.py makemigrations
 python manage.py migrate
 
-# 5. create superuser
+# 6. create superuser
 
 python manage.py createsuperuser
 
-# 6. Start development server
+# 7. Start development server
 
 python manage.py runserver
 ```
