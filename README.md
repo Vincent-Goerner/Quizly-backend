@@ -28,11 +28,14 @@ Quizly is a Django-based, AI-Quiz Generator developed as part of the Developer A
 - Django REST Framework
 - Django-Cors-Headers
 - SimpleJWT
+- FFmpeg
 - YT-dlp
 - Openai-Whisper
 - Google-Genai
 - SQLite (default) or PostgreSQL for production
 - Virtual environment recommended (venv or pipenv)
+
+Full list: requirements.txt (Installation guide see below)
 
 ### Local Setup
 ```bash
