@@ -133,7 +133,7 @@ class LogoutView(APIView):
     View that refreshes the JWT access token using the refresh token stored
     in an HTTP-only cookie and returns a new access token.
     """
-    permission_classes = [IsAuthenticated, IsOwner]
+    permission_classes = [IsOwner]
 
     def post(self, request):
         """
