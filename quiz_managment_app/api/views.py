@@ -1,3 +1,4 @@
+import json
 from django.db import DatabaseError
 from django.shortcuts import get_object_or_404
 
@@ -52,7 +53,6 @@ class QuizCreateView(APIView):
 
             final_text = processor.clean_quiz_text()
 
-            import json
             try:
                 generated_quiz = json.loads(final_text)
             except Exception:

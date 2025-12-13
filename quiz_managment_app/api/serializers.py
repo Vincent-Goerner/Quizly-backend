@@ -109,11 +109,24 @@ class YTURLSerializer(serializers.Serializer):
         )
 
         for q in generated_quiz.get("questions", []):
+            options = q.get("question_options", [])
+            answer = q.get("answer", "")
+
+            options = [opt.strip() for opt in options]
+            answer = answer.strip()
+
+            if answer not in options:
+                lowered_options = {opt.lower(): opt for opt in options}
+                if answer.lower() in lowered_options:
+                    answer = lowered_options[answer.lower()]
+                else:
+                    continue
+
             Question.objects.create(
                 quiz=quiz,
                 question_title=q.get("question_title", "Untitled Question"),
-                question_options=q.get("question_options", []),
-                answer=q.get("answer", "")
+                question_options=options,
+                answer=answer
             )
 
         return quiz
@@ -138,6 +151,17 @@ class QuestionSerializer(serializers.ModelSerializer):
                 "Each question must have exactly 4 answer options."
             )
         return value
+    
+    def validate_anwser(self, attrs):
+        options = attrs.get("question_options", [])
+        answer = attrs.get("answer", "").strip()
+
+        if answer not in options:
+            raise serializers.ValidationError(
+                "Answer must be one of the question options."
+            )
+
+        return attrs
     
 
 class QuizSerializer(serializers.ModelSerializer):
@@ -179,7 +203,7 @@ class QuizPatchSerializer(serializers.ModelSerializer):
             "video_url",
             "questions",
         ]
-        read_only_fields = ["id" "created_at", "updated_at", "video_url", "questions"]
+        read_only_fields = ["id", "created_at", "updated_at", "video_url", "questions"]
 
     def validate(self, attrs):
         """

@@ -95,7 +95,7 @@ class QuizGenerator:
             {{
             "question_title": "string",
             "question_options": ["A", "B", "C", "D"],
-            "answer": "string"
+            "answer": "MUSS EXAKT EIN ELEMENT AUS question_options SEIN"
             }}
         ]
         }}
